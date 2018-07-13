@@ -6,9 +6,9 @@ namespace MazeLibrary.Tests
     [TestFixture]
     public class MazeSolverTests
     {
-        private readonly int[] startXs = { 1, 0, 3, 0 };
+        private readonly int[] startXs = { 3, 0, 1, 0 };
 
-        private readonly int[] startYs = { 0, 1, 5, 4 };
+        private readonly int[] startYs = { 5, 4, 0, 1 };
 
         private readonly int[][,] sourceData = new int[][,]
         {
@@ -137,12 +137,25 @@ namespace MazeLibrary.Tests
 
                 if (!MatrixAreEquals(solver.MazeWithPass(), result[i]))
                 {
-                    //TODO
+                    Assert.Fail();
                 }
             }
         }
 
-        private static bool MatrixAreEquals(int[,] lhs, int[,] rhs) => throw new NotImplementedException();
+        private static bool MatrixAreEquals(int[,] lhs, int[,] rhs)
+        {
+            for(int i = 0; i < lhs.GetLength(0); i++)
+            {
+                for(int j = 0; j < lhs.GetLength(1); j++)
+                {
+                    if (lhs[i, j] != rhs[i, j])
+                    {
+                        return false;
+                    }
+                }
+            }
 
+            return true;
+        }
     }
 }
