@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace MazeLibrary
 {
@@ -70,15 +71,35 @@ namespace MazeLibrary
                 throw new ArgumentException($"{nameof(_map)} hasn't got exit! Check the input data.");
             }
 
-            (int X,int Y) = FindFinish(_map);
-            _finishX = X;
-            _finishY = Y;
-            CompleteTheMap(1, _startX, _startY, 0);
+            (_finishX, _finishY) = FindFinish();
+            CompleteTheMap(_startX, _startY, 0);
+        }
+
+        /// <summary>
+        /// Represent current state of map in Console
+        /// </summary>
+        public void PrintMap()
+        {
+            for (int i = 0; i < _mapHeight; i++)
+            {
+                for (int j = 0; j < _mapWidth; j++)
+                {
+                    if (_map[i, j] >= 0 && _map[i, j] < 10)
+                    {
+                        Console.Write(" " + _map[i, j] + " ");
+                    }
+                    else
+                    {
+                        Console.Write(_map[i, j] + " ");
+                    }
+                }
+                Console.WriteLine();
+            }
         }
         #endregion
 
         #region Private API
-        private bool IsWithFinish() => (CountFinishes(_map) == 2) ? true : false;
+        private bool IsWithFinish() => (CountFinishes(_map) >= 2) ? true : false;
 
         private int CountFinishes(int[,] map)
         {
@@ -101,8 +122,22 @@ namespace MazeLibrary
             return result;
         }
 
-        private (int, int) FindFinish(int[,] _map)
+        private (int, int) FindFinish()
+        {           
+            List<PointCtruct> finishes = FindAllFinishes();
+            
+            if (finishes.Count == 1)
+            {
+                return (finishes[0].X, finishes[0].Y);
+            }
+
+            return FindOptimalFinish(finishes);
+        }
+
+        private List<PointCtruct> FindAllFinishes()
         {
+            List<PointCtruct> finishes = new List<PointCtruct>();
+
             for (int i = 0; i < _mapHeight; i++)
             {
                 for (int j = 0; j < _mapWidth; j++)
@@ -111,36 +146,73 @@ namespace MazeLibrary
                     {
                         if (_map[i, j] == 0)
                         {
-                            if(i != _startX && j != _startY)
+                            if (i != _startX && j != _startY)
                             {
-                                return (i, j);
+                                finishes.Add(new PointCtruct(i, j));
                             }
 
                             if (i == _startX && j != _startY)
                             {
-                                return (i, j);
+                                finishes.Add(new PointCtruct(i, j));
                             }
 
-                            if(j == _startY && i != _startX)
+                            if (j == _startY && i != _startX)
                             {
-                                return (i, j);
+                                finishes.Add(new PointCtruct(i, j));
                             }
                         }
                     }
                 }
             }
 
-            throw new ArgumentException($"{nameof(_map)} hasn't got any finish!");
+            return finishes;
         }
 
-        private void CompleteTheMap(int prev, int x, int y, int step)
+        private (int, int) FindOptimalFinish(List<PointCtruct> finishes)
+        { 
+            int[] waySteps = FindAllWaysToFinish(finishes); 
+            int minInd = FindMinSteps(waySteps);   
+
+            return (finishes[minInd].X, finishes[minInd].Y);
+        }
+
+        private int FindMinSteps(int[] waySteps)
+        {
+            int min = waySteps[0];
+            int minInd = 0;
+
+            for (int i = 0; i < waySteps.Length; i++)
+            {
+                if (waySteps[i] < min)
+                {
+                    min = waySteps[i];
+                    minInd = i;
+                }
+            }
+
+            return minInd;
+        }
+
+        private int[] FindAllWaysToFinish(List<PointCtruct> finishes)
+        {
+            int[] ways = new int[finishes.Count];
+
+            for (int i = 0; i < finishes.Count; i++)
+            {
+                ways[i] = Math.Abs(finishes[i].X - _startX) + Math.Abs(finishes[i].Y - _startY);
+            }
+
+            return ways;
+        }
+
+        private void CompleteTheMap(int x, int y, int step)
         {
             int incY = y + 1;
             int incX = x + 1;
             int decY = y - 1;
             int decX = x - 1;
 
-            if (!_isFinished &&_map[x, y] == 0 && x < _mapHeight && y < _mapWidth)
+            if (!_isFinished && _map[x, y] == 0 && x < _mapHeight && y < _mapWidth)
             {
                 step++;
                 _map[x, y] = step;
@@ -152,28 +224,45 @@ namespace MazeLibrary
 
                 if (incX < _mapHeight && _map[incX, y] == 0)
                 {
-                    CompleteTheMap(_map[x, y], incX, y, step);
+                    CompleteTheMap(incX, y, step);
                 }
 
-                if(incY < _mapWidth && _map[x, incY] == 0)
+                if (incY < _mapWidth && _map[x, incY] == 0)
                 {
-                    CompleteTheMap(_map[x, y], x, incY, step);
+                    CompleteTheMap(x, incY, step);
                 }
 
                 if (decX >= 0 && _map[decX, y] == 0)
                 {
-                    CompleteTheMap(_map[x, y], decX, y, step);
+                    CompleteTheMap(decX, y, step);
                 }
 
                 if (decY >= 0 && _map[x, decY] == 0)
                 {
-                    CompleteTheMap(_map[x, y], x, decY, step);
+                    CompleteTheMap(x, decY, step);
                 }
 
                 if (!_isFinished)
                 {
                     _map[x, y] = 0;
                 }
+            }
+        }
+        #endregion
+
+        #region Helpers
+        /// <summary>
+        /// Structure representing point with two coordinates
+        /// </summary>
+        private struct PointCtruct
+        {
+            public int X { get; set; }
+            public int Y { get; set; }
+
+            public PointCtruct(int x, int y)
+            {
+                X = x;
+                Y = y;
             }
         }
         #endregion
